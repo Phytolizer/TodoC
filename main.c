@@ -58,10 +58,18 @@ int main(void)
 		return 1;
 	}
 	struct window_size window_size = get_window_size();
-	char* cursor_pos = ansi_esc_cursor_pos(window_size.rows / 2, window_size.cols / 2 - 3);
-	printf(ANSI_ESC_KILL_SCREEN "%sHello\r\n", cursor_pos);
+	if (!window_size.success)
+	{
+		disable_raw_mode(&orig_termios);
+		return 1;
+	}
 
-	free(cursor_pos);
+	int c;
+	while (read(STDIN_FILENO, &c, 1) != -1 && c != ('q' & 0x1F))
+	{
+		printf("%d\r\n", c);
+	}
+
 	disable_raw_mode(&orig_termios);
 	return 0;
 }
