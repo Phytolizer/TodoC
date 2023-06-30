@@ -1,4 +1,7 @@
 #include "ansi_esc.h"
+#include "raw_mode.h"
+#include "ui.h"
+#include <stb_ds.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,70 +9,87 @@
 #include <termios.h>
 #include <unistd.h>
 
-struct window_size
-{
-	bool success;
-	int rows;
-	int cols;
-};
-
-struct window_size get_window_size(void)
-{
-	struct winsize ws;
-	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0)
-	{
-		return (struct window_size){.success = false};
-	}
-	return (struct window_size){.success = true, .rows = ws.ws_row, .cols = ws.ws_col};
-}
-
-bool enable_raw_mode(struct termios* orig_termios)
-{
-	if (tcgetattr(STDIN_FILENO, orig_termios) == -1)
-	{
-		return false;
-	}
-
-	struct termios raw = *orig_termios;
-	raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-	raw.c_oflag &= ~(OPOST);
-	raw.c_cflag |= (CS8);
-	raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-	raw.c_cc[VMIN] = 0;
-	raw.c_cc[VTIME] = 1;
-
-	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
-	{
-		return false;
-	}
-	return true;
-}
-
-void disable_raw_mode(struct termios* orig_termios)
-{
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, orig_termios);
-}
-
 int main(void)
 {
-	struct termios orig_termios;
-	if (!enable_raw_mode(&orig_termios))
+	if (!raw_mode_enable())
 	{
 		return 1;
 	}
-	struct window_size window_size = get_window_size();
-	if (!window_size.success)
+	atexit(&raw_mode_disable);
+
+	fputs(ANSI_ESC_CURSOR_HIDE, stderr);
+
+	const char* const todos[] = {
+	    "Write the todo app",
+	    "Buy bread",
+	    "Make a cup of tea",
+	};
+	size_t todo_curr = 0;
+	const char* const dones[] = {
+	    "Start the stream",
+	    "Have breakfast",
+	    "Make a cup of tea",
+	};
+	size_t done_curr = 0;
+
+	struct Ui ui = {0};
+	bool quit = false;
+	while (!quit)
 	{
-		disable_raw_mode(&orig_termios);
-		return 1;
+		fputs(ANSI_ESC_KILL_SCREEN, stderr);
+		UiBegin(&ui, 0, 0);
+		UiLabel(&ui, "TODO:", regular_pair);
+		UiBeginList(&ui, todo_curr);
+		for (size_t i = 0; i < sizeof(todos) / sizeof(*todos); ++i)
+		{
+			char buff[256];
+			snprintf(buff, sizeof(buff), "- [ ] %s", todos[i]);
+			UiListElement(&ui, buff, i);
+		}
+		UiEndList(&ui);
+
+		UiLabel(&ui, "DONE:", regular_pair);
+		UiBeginList(&ui, done_curr);
+		for (size_t i = 0; i < sizeof(dones) / sizeof(*dones); ++i)
+		{
+			char buff[256];
+			snprintf(buff, sizeof(buff), "- [ ] %s", dones[i]);
+			UiListElement(&ui, buff, i);
+		}
+		UiEndList(&ui);
+		UiEnd(&ui);
+
+		fflush(stderr);
+
+		int c;
+		while (read(STDIN_FILENO, &c, 1) > 0)
+		{
+			switch (c)
+			{
+			case 'q':
+				quit = true;
+				break;
+			case 'w':
+				if (todo_curr > 0)
+				{
+					todo_curr -= 1;
+				}
+				break;
+			case 's':
+				if (todo_curr + 1 < sizeof(todos) / sizeof(*todos))
+				{
+					todo_curr += 1;
+				}
+				break;
+			default:
+				break;
+			}
+		}
 	}
 
-	int c;
-	while (read(STDIN_FILENO, &c, 1) != -1 && c != ('q' & 0x1F))
-	{
-		printf("%d\r\n", c);
-	}
-
-	disable_raw_mode(&orig_termios);
+	fputs(ANSI_ESC_KILL_SCREEN, stderr);
+	ansi_esc_cursor_pos(0, 0);
+	fputs(ANSI_ESC_CURSOR_SHOW, stderr);
+	fflush(stderr);
 	return 0;
 }

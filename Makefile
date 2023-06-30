@@ -2,7 +2,9 @@ CC := clang-16
 GENJSON := 1
 CFLAGS := -std=c2x \
 	-MMD -MP \
-	-Wall -Wextra \
+	-Wall -Wextra -Wmissing-prototypes \
+	-isystem deps \
+	-DSTBDS_NO_SHORT_NAMES \
 	-g3 -Og \
 	-fsanitize=address,undefined
 LDFLAGS := -fsanitize=address,undefined
@@ -10,7 +12,10 @@ LDFLAGS := -fsanitize=address,undefined
 .PHONY: all clean re run scan
 
 FILES := main \
-	ansi_esc
+	ansi_esc \
+	raw_mode \
+	stb_ds \
+	ui
 OBJ_PAT := obj/%.o
 OBJ := $(patsubst %,$(OBJ_PAT),$(FILES))
 FRAG_PAT := build/frag-%.txt

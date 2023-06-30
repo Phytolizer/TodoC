@@ -51,6 +51,9 @@
 #define ANSI_ESC_KILL_LINE ANSI_ESC_CSI "2K"
 
 #define ANSI_ESC_CURSOR_RESET ANSI_ESC_CSI "H"
-char* ansi_esc_cursor_pos(uint32_t x, uint32_t y);
+#define ANSI_ESC_CURSOR_HIDE ANSI_ESC_CSI "?25l"
+#define ANSI_ESC_CURSOR_SHOW ANSI_ESC_CSI "?25h"
+#define ANSI_ESC_NEW_SCREEN ANSI_ESC_KILL_SCREEN ANSI_ESC_CURSOR_RESET
+void ansi_esc_cursor_pos(uint32_t x, uint32_t y);
 
 #endif // ANSI_ESC_ANSI_ESC_H_
