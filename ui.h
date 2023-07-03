@@ -1,7 +1,6 @@
 #ifndef UI_H_
 #define UI_H_
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 

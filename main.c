@@ -2,7 +2,6 @@
 #include "raw_mode.h"
 #include "ui.h"
 #include <stb_ds.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
@@ -87,9 +86,8 @@ int main(void)
 		}
 	}
 
-	fputs(ANSI_ESC_KILL_SCREEN, stderr);
 	ansi_esc_cursor_pos(0, 0);
-	fputs(ANSI_ESC_CURSOR_SHOW, stderr);
+	fputs(ANSI_ESC_KILL_SCREEN ANSI_ESC_CURSOR_SHOW, stderr);
 	fflush(stderr);
 	return 0;
 }
